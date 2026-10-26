@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Open Fist - Teachable Machine Hand Gesture Classifier</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0a0e17;
+      --bg-card: rgba(15, 23, 42, 0.78);
+      --border: rgba(148, 163, 184, 0.14);
+      --border-glow: rgba(6, 182, 212, 0.35);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent-cyan: #06b6d4;
+      --accent-emerald: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-violet: #8b5cf6;
+      --accent-rose: #f43f5e;
+      --radius: 16px;
+      --font: 'Plus Jakarta Sans', system-ui, sans-serif;
+      --mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg-primary);
+      background-image: 
+        radial-gradient(circle at 10% 10%, rgba(6, 182, 212, 0.12), transparent 45%),
+        radial-gradient(circle at 90% 90%, rgba(139, 92, 246, 0.12), transparent 45%);
+      background-attachment: fixed;
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px 48px;
+    }
+
+    .app-container {
+      width: 100%;
+      max-width: 960px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Header */
+    .header-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand-icon {
+      font-size: 30px;
+      background: linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(139, 92, 246, 0.2));
+      border: 1px solid var(--border-glow);
+      border-radius: 12px;
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .brand-title {
+      font-size: 1.45rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-title span {
+      background: linear-gradient(135deg, var(--accent-cyan), #38bdf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-subtitle {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+
+    .status-badges {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.78rem;
+      padding: 6px 12px;
+      border-radius: 9999px;
+      background: rgba(30, 41, 59, 0.6);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .badge-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--text-muted);
+    }
+
+    .badge.active .badge-dot {
+      background: var(--accent-emerald);
+      box-shadow: 0 0 10px var(--accent-emerald);
+    }
+
+    .badge.active { color: #a7f3d0; border-color: rgba(16, 185, 129, 0.4); }
+
+    /* Model Configuration Box */
+    .config-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .config-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .config-label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      min-width: 90px;
+    }
+
+    .url-input {
+      flex: 1;
+      min-width: 260px;
+      background: rgba(2, 6, 23, 0.7);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px 14px;
+      color: var(--text-main);
+      font-family: var(--mono);
+      font-size: 0.85rem;
+    }
+
+    .url-input:focus {
+      outline: none;
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.2);
+    }
+
+    .config-options {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .chip-btn {
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .chip-btn:hover {
+      background: rgba(51, 65, 85, 0.9);
+      color: var(--text-main);
+      border-color: var(--border-glow);
+    }
+
+    .file-input-wrapper {
+      display: inline-flex;
+      position: relative;
+    }
+
+    .file-input-wrapper input[type="file"] {
+      position: absolute;
+      left: 0; top: 0; opacity: 0;
+      width: 100%; height: 100%;
+      cursor: pointer;
+    }
+
+    /* Main Grid */
+    .grid-layout {
+      display: grid;
+      grid-template-columns: 1.15fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 820px) {
+      .grid-layout { grid-template-columns: 1fr; }
+    }
+
+    /* Video & Reticle Panel */
+    .viewport-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .camera-frame {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1;
+      max-height: 380px;
+      background: #020617;
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    /* Original required ID for webcam mount */
+    #webcam-container {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #webcam-container canvas {
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: cover;
+      border-radius: 12px;
+    }
+
+    .webcam-idle-placeholder {
+      text-align: center;
+      color: var(--text-muted);
+      padding: 20px;
+    }
+
+    .webcam-idle-placeholder .idle-icon {
+      font-size: 44px;
+      margin-bottom: 8px;
+      opacity: 0.7;
+    }
+
+    .webcam-idle-placeholder p {
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .webcam-idle-placeholder span {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    /* HUD Reticles */
+    .hud-reticle {
+      position: absolute;
+      width: 20px; height: 20px;
+      border: 2px solid var(--accent-cyan);
+      pointer-events: none;
+      opacity: 0.8;
+      z-index: 2;
+    }
+    .hud-reticle.tl { top: 12px; left: 12px; border-right: none; border-bottom: none; }
+    .hud-reticle.tr { top: 12px; right: 12px; border-left: none; border-bottom: none; }
+    .hud-reticle.bl { bottom: 12px; left: 12px; border-right: none; border-top: none; }
+    .hud-reticle.br { bottom: 12px; right: 12px; border-left: none; border-top: none; }
+
+    /* Buttons */
+    .action-controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .btn {
+      font-family: var(--font);
+      font-size: 0.92rem;
+      font-weight: 700;
+      padding: 10px 22px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+
+    .btn-start {
+      background: linear-gradient(135deg, var(--accent-cyan), #0284c7);
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(6, 182, 212, 0.35);
+      flex: 1;
+    }
+
+    .btn-start:hover:not(:disabled) {
+      background: linear-gradient(135deg, #22d3ee, #0369a1);
+      transform: translateY(-1px);
+    }
+
+    .btn-stop {
+      background: rgba(244, 63, 94, 0.15);
+      border: 1px solid rgba(244, 63, 94, 0.35);
+      color: #fda4af;
+      padding: 10px 18px;
+    }
+
+    .btn-stop:hover:not(:disabled) {
+      background: rgba(244, 63, 94, 0.3);
+      color: #fff;
+    }
+
+    .btn-secondary {
+      background: rgba(30, 41, 59, 0.6);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 10px 16px;
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: rgba(51, 65, 85, 0.8);
+      color: var(--text-main);
+    }
+
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    /* Detected Gesture Card */
+    .gesture-display-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+
+    .gesture-display-card.is-open {
+      border-color: rgba(16, 185, 129, 0.5);
+      box-shadow: 0 0 25px rgba(16, 185, 129, 0.25);
+    }
+
+    .gesture-display-card.is-fist {
+      border-color: rgba(6, 182, 212, 0.5);
+      box-shadow: 0 0 25px rgba(6, 182, 212, 0.25);
+    }
+
+    .gesture-avatar {
+      font-size: 42px;
+      width: 72px; height: 72px;
+      border-radius: 14px;
+      background: rgba(30, 41, 59, 0.8);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .gesture-meta-box {
+      flex: 1;
+    }
+
+    .gesture-caption {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      font-weight: 700;
+    }
+
+    .gesture-name {
+      font-size: 1.5rem;
+      font-weight: 800;
+      margin: 2px 0 4px;
+    }
+
+    .gesture-confidence {
+      font-size: 0.85rem;
+      font-family: var(--mono);
+      color: var(--accent-cyan);
+    }
+
+    /* Predictions / Label Container */
+    .panel-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .panel-title {
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    /* Original required ID for labels */
+    #label-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-height: 120px;
+    }
+
+    .empty-state-notice {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      padding: 24px 16px;
+      text-align: center;
+      border: 1px dashed var(--border);
+      border-radius: 10px;
+    }
+
+    /* Styled Prediction Row created inside #label-container */
+    .prediction-item {
+      background: rgba(30, 41, 59, 0.4);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .prediction-item.active-class {
+      border-color: var(--accent-cyan);
+      background: rgba(6, 182, 212, 0.08);
+    }
+
+    .prediction-info {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .prediction-info .name {
+      text-transform: capitalize;
+    }
+
+    .prediction-info .val {
+      font-family: var(--mono);
+      color: var(--accent-cyan);
+    }
+
+    .progress-bar-bg {
+      width: 100%;
+      height: 8px;
+      background: rgba(15, 23, 42, 0.8);
+      border-radius: 9999px;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #0284c7, var(--accent-cyan));
+      border-radius: 9999px;
+      transition: width 0.12s ease-out;
+    }
+
+    .prediction-item.active-class .progress-bar-fill {
+      background: linear-gradient(90deg, #059669, var(--accent-emerald));
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+    }
+
+    /* Alert / Error Banner */
+    .alert-banner {
+      display: none;
+      background: rgba(244, 63, 94, 0.12);
+      border: 1px solid rgba(244, 63, 94, 0.35);
+      border-radius: 12px;
+      padding: 14px 18px;
+      font-size: 0.85rem;
+      color: #fecdd3;
+    }
+
+    .alert-banner.show {
+      display: block;
+    }
+
+    .alert-banner strong {
+      color: #fff;
+    }
+
+    .alert-banner button {
+      background: rgba(244, 63, 94, 0.25);
+      border: 1px solid rgba(244, 63, 94, 0.5);
+      color: #fff;
+      padding: 4px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-top: 8px;
+      font-size: 0.78rem;
+    }
+
+    /* Stats Bar */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .stat-card {
+      background: rgba(30, 41, 59, 0.4);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px;
+      text-align: center;
+    }
+
+    .stat-val {
+      font-family: var(--mono);
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .stat-lbl {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="header-card">
+      <div class="brand-group">
+        <div class="brand-icon">✊</div>
+        <div>
+          <h1 class="brand-title">OPEN <span>FIST</span></h1>
+          <div class="brand-subtitle">Teachable Machine Image Model</div>
+        </div>
+      </div>
+      <div class="status-badges">
+        <div class="badge" id="camera-badge">
+          <span class="badge-dot"></span>
+          <span id="camera-badge-text">Camera: Idle</span>
+        </div>
+        <div class="badge" id="model-badge">
+          <span class="badge-dot"></span>
+          <span id="model-badge-text">Model: Unloaded</span>
+        </div>
+        <button id="sound-btn" class="chip-btn" onclick="toggleSound()">🔊 Audio</button>
+      </div>
+    </header>
+
+    <!-- Model URL / File Settings Card -->
+    <section class="config-card">
+      <div class="config-row">
+        <label class="config-label" for="model-url-input">Model Path:</label>
+        <input type="text" id="model-url-input" class="url-input" value="./my_model/" placeholder="Paste Teachable Machine model URL (e.g. https://teachablemachine.withgoogle.com/models/.../)">
+        <button type="button" class="chip-btn" onclick="applyCustomURL()">Apply URL</button>
+      </div>
+      <div class="config-options">
+        <span style="font-size: 0.75rem; color: var(--text-muted);">Quick Options:</span>
+        <button type="button" class="chip-btn" onclick="setModelPath('./my_model/')">Local ./my_model/</button>
+        <button type="button" class="chip-btn" onclick="useSampleModel()">Sample Public Model</button>
+        <div class="file-input-wrapper">
+          <button type="button" class="chip-btn">📁 Choose Local Files (model.json, metadata.json, weights.bin)</button>
+          <input type="file" id="file-picker" multiple accept=".json,.bin" onchange="loadFromSelectedFiles(event)">
+        </div>
+        <button type="button" class="chip-btn" onclick="enableDemoMode()">✨ Interactive Demo</button>
+      </div>
+    </section>
+
+    <!-- Error / Helper Notification with Retry -->
+    <div id="alert-banner" class="alert-banner">
+      <strong>⚠️ Model Loading Notice:</strong>
+      <p id="alert-text">Could not load model files from <code>./my_model/</code>. If you haven't downloaded your model into <code>my_model/</code>, paste your Teachable Machine URL above or select the downloaded files with the file picker.</p>
+      <div style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">
+        <button type="button" class="btn-retry" onclick="init()" style="background:#0284c7; color:#fff; font-weight:700;">🔄 Retry</button>
+        <button type="button" onclick="useSampleModel()">Load Working Cloud Model</button>
+        <button type="button" onclick="document.getElementById('file-picker').click()">Upload Files</button>
+      </div>
+    </div>
+
+    <!-- Main Grid -->
+    <div class="grid-layout">
+      <!-- Left: Camera Viewport and Controls -->
+      <section class="viewport-card">
+        <div class="camera-frame">
+          <div class="hud-reticle tl"></div>
+          <div class="hud-reticle tr"></div>
+          <div class="hud-reticle bl"></div>
+          <div class="hud-reticle br"></div>
+
+          <!-- The required webcam container from user code -->
+          <div id="webcam-container">
+            <div class="webcam-idle-placeholder" id="placeholder">
+              <div class="idle-icon">📷</div>
+              <p>Camera is currently idle</p>
+              <span>Click "Start" below to initialize</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- The required Start button from user code, plus Stop & Flip -->
+        <div class="action-controls">
+          <button type="button" id="start-btn" class="btn btn-start" onclick="init()">
+            ▶ Start
+          </button>
+          <button type="button" id="stop-btn" class="btn btn-stop" onclick="stop()" disabled>
+            ⏹ Stop
+          </button>
+          <button type="button" class="btn btn-secondary" onclick="toggleFlip()">
+            🔄 Flip
+          </button>
+        </div>
+
+        <!-- Detected Gesture Banner -->
+        <div class="gesture-display-card" id="gesture-card">
+          <div class="gesture-avatar" id="gesture-avatar">❓</div>
+          <div class="gesture-meta-box">
+            <div class="gesture-caption">Active Classification</div>
+            <div class="gesture-name" id="gesture-name">Waiting...</div>
+            <div class="gesture-confidence" id="gesture-confidence">Confidence: 0.0%</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right: Predictions & Stats -->
+      <section class="panel-card">
+        <div class="panel-header">
+          <h2 class="panel-title">Predictions</h2>
+          <span style="font-size: 0.75rem; color: var(--text-muted);" id="prediction-count">0 Classes</span>
+        </div>
+
+        <!-- The required label-container from user code -->
+        <div id="label-container">
+          <div class="empty-state-notice">
+            Class probabilities will appear here when the model is initialized.
+          </div>
+        </div>
+
+        <!-- Session Statistics -->
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-val" id="stat-fists">0</div>
+            <div class="stat-lbl">Fists Formed ✊</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-val" id="stat-opens">0</div>
+            <div class="stat-lbl">Open Hands 🖐️</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-val" id="stat-fps">0</div>
+            <div class="stat-lbl">FPS</div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- Fast local vendor libraries matching model tfjs 1.3.1 and tmImage 0.8.5 -->
+  <script src="./lib/tf.min.js"></script>
+  <script src="./lib/teachablemachine-image.min.js"></script>
+
+  <script type="text/javascript">
+    // More API functions here:
+    // https://github.com/googlecreativelab/teachablemachine-community/tree/master/libraries/image
+
+    // The link to your model provided by Teachable Machine export panel
+    let URL = "./my_model/";
+
+    let model, webcam, labelContainer, maxPredictions;
+
+    // App state
+    let isRunning = false;
+    let flip = true;
+    let isDemoMode = false;
+    let soundEnabled = true;
+    let animationFrameId = null;
+
+    // Stats
+    let fistCount = 0;
+    let openCount = 0;
+    let lastGesture = "";
+    let lastFrameTime = performance.now();
+    let frameCount = 0;
+
+    // Web Audio Synthesizer
+    let audioCtx = null;
+    function playTone(freq, dur = 0.12) {
+      if (!soundEnabled) return;
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === "suspended") audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + dur);
+      } catch (e) {}
+    }
+
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      document.getElementById("sound-btn").textContent = soundEnabled ? "🔊 Audio" : "🔇 Muted";
+    }
+
+    // Model configuration helpers
+    function applyCustomURL() {
+      const input = document.getElementById("model-url-input");
+      let val = input.value.trim();
+      if (!val) return;
+      if (!val.endsWith("/")) val += "/";
+      URL = val;
+      isDemoMode = false;
+      document.getElementById("alert-banner").classList.remove("show");
+      if (isRunning) {
+        stop();
+        setTimeout(init, 300);
+      }
+    }
+
+    function setModelPath(path) {
+      document.getElementById("model-url-input").value = path;
+      applyCustomURL();
+    }
+
+    function useSampleModel() {
+      // Verified live working public hand gesture model (Rock / Paper / Scissors)
+      const sampleURL = "https://teachablemachine.withgoogle.com/models/sl4nmwSgl/";
+      document.getElementById("model-url-input").value = sampleURL;
+      applyCustomURL();
+    }
+
+    // Resolves relative and absolute URLs properly across local dev and Vercel hosting
+    function resolveModelURL(base) {
+      if (base.startsWith("http://") || base.startsWith("https://")) {
+        return base.endsWith("/") ? base : base + "/";
+      }
+      try {
+        const resolved = new URL(base, window.location.href).href;
+        return resolved.endsWith("/") ? resolved : resolved + "/";
+      } catch (e) {
+        return base.endsWith("/") ? base : base + "/";
+      }
+    }
+
+    async function loadFromSelectedFiles(event) {
+      const files = Array.from(event.target.files);
+      let modelFile, metadataFile, weightsFile;
+      files.forEach(f => {
+        if (f.name === "model.json") modelFile = f;
+        else if (f.name === "metadata.json") metadataFile = f;
+        else if (f.name.endsWith(".bin")) weightsFile = f;
+      });
+
+      if (!modelFile || !metadataFile || !weightsFile) {
+        alert("Please select all 3 files: model.json, metadata.json, and weights.bin");
+        return;
+      }
+
+      try {
+        updateBadge("model", "loading", "Loading Files...");
+        model = await tmImage.loadFromFiles(modelFile, weightsFile, metadataFile);
+        maxPredictions = model.getTotalClasses();
+        isDemoMode = false;
+        setupLabelContainer();
+        updateBadge("model", "active", `Model: Loaded (${maxPredictions} Classes)`);
+        document.getElementById("alert-banner").classList.remove("show");
+        if (!isRunning) initWebcam();
+      } catch (err) {
+        alert("Error loading model files: " + err.message);
+      }
+    }
+
+    function enableDemoMode() {
+      isDemoMode = true;
+      document.getElementById("alert-banner").classList.remove("show");
+      updateBadge("model", "active", "Mode: Simulated Demo");
+      maxPredictions = 2;
+      setupLabelContainer(["Open Hand", "Closed Fist"]);
+      if (!isRunning) init();
+    }
+
+    function updateBadge(type, state, text) {
+      const el = document.getElementById(`${type}-badge`);
+      const txt = document.getElementById(`${type}-badge-text`);
+      if (txt) txt.textContent = text;
+      if (el) {
+        el.classList.remove("active");
+        if (state === "active") el.classList.add("active");
+      }
+    }
+
+    function setupLabelContainer(labels = null) {
+      labelContainer = document.getElementById("label-container");
+      labelContainer.innerHTML = "";
+      const classLabels = labels || (model ? model.getClassLabels() : []);
+      const countEl = document.getElementById("prediction-count");
+      if (countEl) countEl.textContent = `${classLabels.length} Classes`;
+
+      for (let i = 0; i < classLabels.length; i++) {
+        const row = document.createElement("div");
+        row.className = "prediction-item";
+        row.id = `pred-item-${i}`;
+        row.innerHTML = `
+          <div class="prediction-info">
+            <span class="name">${classLabels[i]}</span>
+            <span class="val" id="pred-val-${i}">0.00</span>
+          </div>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" id="pred-bar-${i}"></div>
+          </div>
+        `;
+        labelContainer.appendChild(row);
+      }
+    }
+
+    // Shared model-loading function used by both tests and the Start button
+    async function loadModel() {
+      const resolvedBase = resolveModelURL(URL);
+      const modelURL = resolvedBase + "model.json";
+      const metadataURL = resolvedBase + "metadata.json";
+
+      updateBadge("model", "loading", "Loading Model...");
+      document.getElementById("alert-banner").classList.remove("show");
+
+      console.log("Loading model from:", modelURL, metadataURL);
+      try {
+        if (typeof tmImage === "undefined") {
+          throw new Error("Teachable Machine library (tmImage) not loaded. Check network or scripts.");
+        }
+
+        // Load the model and metadata
+        model = await tmImage.load(modelURL, metadataURL);
+        maxPredictions = model.getTotalClasses();
+        const labels = model.getClassLabels();
+        console.log("Model successfully loaded:", maxPredictions, "classes:", labels);
+
+        // Verify model can execute predictions using a test canvas
+        const testCanvas = document.createElement("canvas");
+        testCanvas.width = 224;
+        testCanvas.height = 224;
+        const testPred = await model.predict(testCanvas);
+        console.log("Verified prediction pipeline on test canvas:", testPred);
+
+        updateBadge("model", "active", `Model: Loaded (${maxPredictions} Classes)`);
+        document.getElementById("alert-banner").classList.remove("show");
+
+        // Setup prediction rows
+        setupLabelContainer();
+
+        return model;
+      } catch (err) {
+        console.error("Model load error:", err);
+        updateBadge("model", "idle", "Model: Not Loaded");
+        const banner = document.getElementById("alert-banner");
+        banner.classList.add("show");
+        document.getElementById("alert-text").innerHTML = 
+          `<strong>Model Loading Failed:</strong> Could not load model from <code>${URL}</code> (${err.message || "File not found"}).<br>` +
+          `Click <strong>🔄 Retry</strong>, choose <strong>Load Working Cloud Model</strong>, or upload model files.`;
+        throw err;
+      }
+    }
+
+    // Start button handler: ensures model is loaded first, then initializes webcam
+    async function init() {
+      const startBtn = document.getElementById("start-btn");
+      const stopBtn = document.getElementById("stop-btn");
+      startBtn.disabled = true;
+
+      if (isDemoMode) {
+        await initWebcam();
+        stopBtn.disabled = false;
+        return;
+      }
+
+      // Step 1: Ensure model is loaded first using shared loadModel()
+      if (!model) {
+        try {
+          await loadModel();
+        } catch (err) {
+          startBtn.disabled = false;
+          return; // Stop here if model failed
+        }
+      }
+
+      // Step 2: Initialize webcam
+      try {
+        await initWebcam();
+        stopBtn.disabled = false;
+      } catch (camErr) {
+        console.error("Camera error:", camErr);
+        updateBadge("camera", "idle", "Camera: Error");
+        startBtn.disabled = false;
+        const banner = document.getElementById("alert-banner");
+        banner.classList.add("show");
+        document.getElementById("alert-text").innerHTML = 
+          `<strong>Camera Error:</strong> ${camErr.message || "Permission denied / No camera device found"}.<br>Please allow camera permissions in your browser.`;
+      }
+    }
+
+    async function initWebcam() {
+      const container = document.getElementById("webcam-container");
+      container.innerHTML = "";
+
+      updateBadge("camera", "loading", "Camera: Starting...");
+      // Convenience function to setup a webcam
+      webcam = new tmImage.Webcam(360, 360, flip); // width, height, flip
+      await webcam.setup(); // request access to the webcam
+      await webcam.play();
+      isRunning = true;
+
+      updateBadge("camera", "active", "Camera: Active");
+      container.appendChild(webcam.canvas);
+
+      window.requestAnimationFrame(loop);
+    }
+
+    async function loop() {
+      if (!isRunning) return;
+
+      if (webcam) {
+        webcam.update(); // update the webcam frame
+      }
+
+      // FPS tracking
+      frameCount++;
+      const now = performance.now();
+      if (now - lastFrameTime >= 1000) {
+        document.getElementById("stat-fps").textContent = Math.round((frameCount * 1000) / (now - lastFrameTime));
+        frameCount = 0;
+        lastFrameTime = now;
+      }
+
+      if (isDemoMode) {
+        runDemoPredict();
+      } else if (model && webcam) {
+        await predict();
+      }
+
+      animationFrameId = window.requestAnimationFrame(loop);
+    }
+
+    // Run the webcam image through the image model
+    async function predict() {
+      // Predict can take in an image, video or canvas html element
+      const prediction = await model.predict(webcam.canvas);
+
+      let topClass = "";
+      let topProb = -1;
+      let topIdx = -1;
+
+      for (let i = 0; i < maxPredictions; i++) {
+        const className = prediction[i].className;
+        const probability = prediction[i].probability;
+        const formattedProb = probability.toFixed(2);
+
+        // Update probability bar and text
+        const valEl = document.getElementById(`pred-val-${i}`);
+        const barEl = document.getElementById(`pred-bar-${i}`);
+        const itemEl = document.getElementById(`pred-item-${i}`);
+
+        if (valEl) valEl.innerText = `${(probability * 100).toFixed(0)}% (${formattedProb})`;
+        if (barEl) barEl.style.width = `${(probability * 100).toFixed(1)}%`;
+        if (itemEl) itemEl.classList.remove("active-class");
+
+        if (probability > topProb) {
+          topProb = probability;
+          topClass = className;
+          topIdx = i;
+        }
+      }
+
+      if (topIdx !== -1) {
+        const activeItem = document.getElementById(`pred-item-${topIdx}`);
+        if (activeItem) activeItem.classList.add("active-class");
+        updateGestureDisplay(topClass, topProb);
+      }
+    }
+
+    // Update Open Fist UI indicators based on prediction
+    function updateGestureDisplay(className, prob) {
+      const card = document.getElementById("gesture-card");
+      const nameEl = document.getElementById("gesture-name");
+      const avatarEl = document.getElementById("gesture-avatar");
+      const confEl = document.getElementById("gesture-confidence");
+
+      const lower = className.toLowerCase();
+      let isFist = lower.includes("fist") || lower.includes("closed") || lower.includes("rock");
+      let isOpen = lower.includes("open") || lower.includes("hand") || lower.includes("palm") || lower.includes("paper");
+      let isScissors = lower.includes("scissor");
+
+      card.classList.remove("is-open", "is-fist");
+
+      if (isOpen && prob > 0.45) {
+        nameEl.innerText = "OPEN HAND 🖐️";
+        avatarEl.innerText = "🖐️";
+        card.classList.add("is-open");
+        if (lastGesture !== "open") {
+          openCount++;
+          document.getElementById("stat-opens").innerText = openCount;
+          playTone(660);
+          lastGesture = "open";
+        }
+      } else if (isFist && prob > 0.45) {
+        nameEl.innerText = "CLOSED FIST ✊";
+        avatarEl.innerText = "✊";
+        card.classList.add("is-fist");
+        if (lastGesture !== "fist") {
+          fistCount++;
+          document.getElementById("stat-fists").innerText = fistCount;
+          playTone(320);
+          lastGesture = "fist";
+        }
+      } else if (isScissors && prob > 0.45) {
+        nameEl.innerText = "SCISSORS ✌️";
+        avatarEl.innerText = "✌️";
+        if (prob < 0.5) lastGesture = "";
+      } else {
+        nameEl.innerText = className;
+        avatarEl.innerText = "✨";
+        if (prob < 0.5) lastGesture = "";
+      }
+
+      confEl.innerText = `Confidence: ${(prob * 100).toFixed(1)}%`;
+    }
+
+    // Demo Mode simulation
+    let demoStep = 0;
+    function runDemoPredict() {
+      demoStep += 0.03;
+      const wave = Math.sin(demoStep);
+      const openProb = Math.max(0.05, Math.min(0.95, (wave + 1) / 2));
+      const fistProb = 1 - openProb;
+
+      const items = [
+        { name: "Open Hand", prob: openProb },
+        { name: "Closed Fist", prob: fistProb }
+      ];
+
+      items.forEach((item, idx) => {
+        const valEl = document.getElementById(`pred-val-${idx}`);
+        const barEl = document.getElementById(`pred-bar-${idx}`);
+        const itemEl = document.getElementById(`pred-item-${idx}`);
+        if (valEl) valEl.innerText = `${(item.prob * 100).toFixed(0)}% (${item.prob.toFixed(2)})`;
+        if (barEl) barEl.style.width = `${(item.prob * 100).toFixed(1)}%`;
+        if (itemEl) itemEl.classList.toggle("active-class", item.prob > 0.5);
+      });
+
+      if (openProb > 0.55) {
+        updateGestureDisplay("Open Hand", openProb);
+      } else {
+        updateGestureDisplay("Closed Fist", fistProb);
+      }
+    }
+
+    // Stop webcam and loop
+    function stop() {
+      isRunning = false;
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+      if (webcam) {
+        try { webcam.stop(); } catch (e) {}
+      }
+
+      const container = document.getElementById("webcam-container");
+      container.innerHTML = `
+        <div class="webcam-idle-placeholder" id="placeholder">
+          <div class="idle-icon">📷</div>
+          <p>Camera is currently idle</p>
+          <span>Click "Start" below to initialize</span>
+        </div>
+      `;
+
+      document.getElementById("start-btn").disabled = false;
+      document.getElementById("stop-btn").disabled = true;
+      updateBadge("camera", "idle", "Camera: Stopped");
+      document.getElementById("gesture-name").innerText = "Waiting...";
+      document.getElementById("gesture-avatar").innerText = "❓";
+      document.getElementById("gesture-confidence").innerText = "Confidence: 0.0%";
+      document.getElementById("gesture-card").classList.remove("is-open", "is-fist");
+    }
+
+    function toggleFlip() {
+      flip = !flip;
+      if (isRunning) {
+        stop();
+        setTimeout(init, 300);
+      }
+    }
+
+    // Auto-load model when DOM is ready
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", () => { loadModel().catch(() => {}); });
+    } else {
+      loadModel().catch(() => {});
+    }
+  </script>
+</body>
+</html>
